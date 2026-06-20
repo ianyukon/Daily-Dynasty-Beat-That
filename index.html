@@ -5,10 +5,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <meta name="theme-color" content="#070710" />
     <title>Beat That</title>
+    <meta name="description" content="Draft an all-time roster across the eras and chase a perfect season. Can you beat that?" />
+
+    <!-- Link preview (Open Graph) — makes a tappable card show up when the link is texted.
+         The IMAGE is generic for now; tapping the link still opens the EXACT challenged
+         board because the challenge code travels in the URL (?c=...). A per-challenge
+         custom image would require a serverless function (a future upgrade). -->
+    <meta property="og:type" content="website" />
     <meta property="og:title" content="You've been challenged - Beat That" />
     <meta property="og:description" content="Draft an all-time lineup and try to beat my squad. Tap to play." />
     <meta property="og:image" content="/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="You've been challenged - Beat That" />
+    <meta name="twitter:description" content="Draft an all-time lineup and try to beat my squad. Tap to play." />
+    <meta name="twitter:image" content="/og-image.png" />
+
     <style>
       html, body, #root { margin: 0; padding: 0; background: #070710; min-height: 100vh; }
       body { -webkit-tap-highlight-color: transparent; }

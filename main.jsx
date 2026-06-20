@@ -2,6 +2,9 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import BeatThat from "./BeatThat.jsx";
 
+// Storage shim: the game uses window.storage (provided in Claude's environment).
+// On a normal website that doesn't exist, so we back it with localStorage.
+// Stores data per-device/per-browser.
 if (typeof window !== "undefined" && !window.storage) {
   window.storage = {
     async get(key) {

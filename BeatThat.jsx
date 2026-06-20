@@ -922,6 +922,13 @@ const NCAA_TEAMS = {
       { name:"Donta Bright", pos:["SF"], pts:14.0, reb:5.5, ast:2.0, stl:1.2, blk:0.5 },
       { name:"Dana Dingle", pos:["SF","PF"], pts:9.0, reb:5.5, ast:1.5, stl:1.3, blk:0.4 },
     ]},
+    "Vanderbilt": { colors:["#866D4B","#000000"], players:[
+      { name:"Drew Maddux", pos:["SF","SG"], pts:13.5, reb:4.5, ast:2.8, stl:1.3, blk:0.5 },
+      { name:"Dan Langhi", pos:["PF","SF"], pts:16.0, reb:6.5, ast:1.5, stl:0.9, blk:1.2 },
+      { name:"Frank Seckar", pos:["PG","SG"], pts:9.5, reb:2.5, ast:3.5, stl:1.1, blk:0.1 },
+      { name:"Ronald Mencer", pos:["SG"], pts:11.0, reb:2.8, ast:2.0, stl:1.0, blk:0.2 },
+      { name:"Sam Howard", pos:["C","PF"], pts:8.5, reb:6.0, ast:0.8, stl:0.6, blk:1.3 },
+    ]},
   },
   "2000-04": {
     "Duke": { colors:["#003087","#FFFFFF"], players:[
@@ -3512,9 +3519,9 @@ function ResultActions({ cfg, r, perfect, tierLabel, lineupA, teamName, saveTeam
     catch { showToast(`Challenge code: ${code}`); }
   }
 
-  // Reply to the person who challenged you with YOUR score — sends the CARD (score +
-  // grades + Board #, no players, no link). The Board # ties it to the same duel.
-  async function replyWithScore() {
+  // Reply to the chat with YOUR score. full=false → spoiler-free (score + grades, no
+  // players). full=true → reveals your whole lineup. The Board # ties it to the same duel.
+  async function replyWithScore(full=false) {
     const opp = seedInfo && seedInfo.opp;
     const seed = seedInfo ? seedInfo.seed : (lineupSeed(lineupA) ^ hashStr(cfg.label)) >>> 0;
     const tag = boardTag(seed);
@@ -3531,11 +3538,11 @@ function ResultActions({ cfg, r, perfect, tierLabel, lineupA, teamName, saveTeam
     } else {
       verdict = `I went ${r.wins}-${r.losses}.`;
     }
-    // Caption: score + Board # so scores match up. NO link, NO players.
+    // Caption: score + Board # so scores match up.
     const caption = `🏟️ Board #${tag} · ${type==="wild"?"Wild":"Same"} Board · ${cfg.label} Beat That\n${verdict}`;
     const accent = cfg.label==="NBA"?"#E8623A":cfg.label==="NCAA"?"#5b9dff":cfg.label==="NFL"?"#34e89e":"#9b8cff";
     const canvas = canvasRef.current;
-    drawShareCard(canvas, { cfg, r, perfect, teamName, lineupA, accent, seedInfo });
+    drawShareCard(canvas, { cfg, r, perfect, teamName, lineupA, accent, seedInfo, full });
     canvas.toBlob(async (blob) => {
       const file = blob && window.File ? new File([blob], "beat-that.png", { type:"image/png" }) : null;
       try {
@@ -3553,23 +3560,6 @@ function ResultActions({ cfg, r, perfect, tierLabel, lineupA, teamName, saveTeam
 
   return (
     <div>
-      {/* Team identity */}
-      <div style={s.card}>
-        <div style={s.eyebrow}>Team name</div>
-        {editing ? (
-          <div style={{ display:"flex", gap:8 }}>
-            <input autoFocus value={nameInput} onChange={e=>setNameInput(e.target.value.slice(0,28))} placeholder="Name your squad…"
-              style={{ flex:1, padding:"12px 14px", borderRadius:12, border:`1px solid ${C.border}`, background:"rgba(255,255,255,0.05)", color:C.text, fontSize:15, fontWeight:700, outline:"none" }} />
-            <button className="bt-press" style={{ ...s.btn(accent,"#06120c"), width:"auto", marginTop:0, padding:"12px 18px" }} onClick={()=>{ saveTeamName(nameInput.trim()); setEditing(false); buildCard(); showToast("Team name saved"); }}>Save</button>
-          </div>
-        ) : (
-          <div style={{ ...s.row }}>
-            <div style={{ fontSize:18, fontWeight:800, color: teamName?C.text:C.dim }}>{teamName || "Unnamed Squad"}</div>
-            <button className="bt-press" style={{ ...s.ghost, width:"auto", marginTop:0, padding:"8px 14px" }} onClick={()=>{ setNameInput(teamName||""); setEditing(true); }}>{teamName?"Edit":"Add name"}</button>
-          </div>
-        )}
-      </div>
-
       {/* Shareable card — for non-challenge results only (challenges have their own share). */}
       {!(seedInfo && seedInfo.kind==="challenge") && (
         <div style={s.card}>
@@ -3604,7 +3594,9 @@ function ResultActions({ cfg, r, perfect, tierLabel, lineupA, teamName, saveTeam
                   {sameBoard ? " Same board, so this is a clean head-to-head." : " Different boards — bragging rights only."}
                 </div>
                 {cardUrl && <img src={cardUrl} alt="Result card" style={{ width:"100%", borderRadius:14, display:"block", border:`1px solid ${C.border}`, marginTop:12 }} />}
-                <button className="bt-press" style={{ ...s.btn(won?C.green:accent, "#06120c"), marginTop:12 }} onClick={replyWithScore}>📲 Send result to chat</button>
+                <button className="bt-press" style={{ ...s.btn(won?C.green:accent, "#06120c"), marginTop:12 }} onClick={()=>replyWithScore(false)}>🙈 Send score (spoiler-free)</button>
+                <div style={{ fontSize:11, color:C.dim, margin:"4px 0 10px", lineHeight:1.4, textAlign:"center" }}>Send this if you don't want your opponent to see the team you chose.</div>
+                <button className="bt-press" style={s.ghost} onClick={()=>replyWithScore(true)}>🏆 Send score + my full team</button>
               </div>
             );
           })()}
@@ -3622,7 +3614,9 @@ function ResultActions({ cfg, r, perfect, tierLabel, lineupA, teamName, saveTeam
               : `You went ${r.wins}-${r.losses}. Post your score so they can see how you did.`}
           </p>
           {cardUrl && <img src={cardUrl} alt="Result card" style={{ width:"100%", borderRadius:14, display:"block", border:`1px solid ${C.border}`, marginBottom:12 }} />}
-          <button className="bt-press" style={{ ...s.btn(accent,"#06120c"), marginTop:0 }} onClick={replyWithScore}>📲 Send result to chat</button>
+          <button className="bt-press" style={{ ...s.btn(accent,"#06120c"), marginTop:0 }} onClick={()=>replyWithScore(false)}>🙈 Send score (spoiler-free)</button>
+          <div style={{ fontSize:11, color:C.dim, margin:"4px 0 10px", lineHeight:1.4, textAlign:"center" }}>Send this if you don't want your opponent to see the team you chose.</div>
+          <button className="bt-press" style={s.ghost} onClick={()=>replyWithScore(true)}>🏆 Send score + my full team</button>
         </div>
       )}
 
@@ -3641,6 +3635,23 @@ function ResultActions({ cfg, r, perfect, tierLabel, lineupA, teamName, saveTeam
           </button>
         </div>
       )}
+
+      {/* Team identity — moved below sharing so the share action is reachable first */}
+      <div style={s.card}>
+        <div style={s.eyebrow}>Team name</div>
+        {editing ? (
+          <div style={{ display:"flex", gap:8 }}>
+            <input autoFocus value={nameInput} onChange={e=>setNameInput(e.target.value.slice(0,28))} placeholder="Name your squad…"
+              style={{ flex:1, padding:"12px 14px", borderRadius:12, border:`1px solid ${C.border}`, background:"rgba(255,255,255,0.05)", color:C.text, fontSize:15, fontWeight:700, outline:"none" }} />
+            <button className="bt-press" style={{ ...s.btn(accent,"#06120c"), width:"auto", marginTop:0, padding:"12px 18px" }} onClick={()=>{ saveTeamName(nameInput.trim()); setEditing(false); buildCard(); showToast("Team name saved"); }}>Save</button>
+          </div>
+        ) : (
+          <div style={{ ...s.row }}>
+            <div style={{ fontSize:18, fontWeight:800, color: teamName?C.text:C.dim }}>{teamName || "Unnamed Squad"}</div>
+            <button className="bt-press" style={{ ...s.ghost, width:"auto", marginTop:0, padding:"8px 14px" }} onClick={()=>{ setNameInput(teamName||""); setEditing(true); }}>{teamName?"Edit":"Add name"}</button>
+          </div>
+        )}
+      </div>
 
       <button className="bt-press" style={s.btn()} onClick={reset}>Play Again</button>
     </div>
@@ -4079,7 +4090,16 @@ export default function BeatThat() {
           <div style={{ flex:1, height:1, background:`linear-gradient(90deg, ${C.border}, transparent)` }} />
         </div>
         <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
-          {/* 1 — DAILY */}
+          {/* 1 — BUILD a season */}
+          <button className="bt-press bt-card-hover" style={{ width:"100%", padding:"16px", background:"rgba(255,255,255,0.04)", border:`1px solid ${C.border}`, borderRadius:18, color:C.text, cursor:"pointer", textAlign:"left", backdropFilter:"blur(12px)", WebkitBackdropFilter:"blur(12px)", display:"flex", gap:14, alignItems:"flex-start" }} onClick={()=>startMode("season")}>
+            <div style={{ width:46, height:46, borderRadius:13, background:`${sportAccent}1f`, border:`1px solid ${sportAccent}44`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:23, flexShrink:0 }}>🏗️</div>
+            <div style={{ flex:1, minWidth:0 }}>
+              <div style={{ fontWeight:800, fontSize:16.5 }}>Build a Season</div>
+              <div style={{ fontSize:12.5, color:C.muted, marginTop:3, lineHeight:1.45 }}>Draft one {SPORTS[sport].label} lineup at your own pace and chase a perfect {SPORTS[sport].chase}.</div>
+            </div>
+          </button>
+
+          {/* 2 — DAILY */}
           <button className="bt-press bt-card-hover" style={{ width:"100%", padding:"16px", background:"rgba(255,255,255,0.04)", border:`1px solid ${C.border}`, borderRadius:18, color:C.text, cursor:"pointer", textAlign:"left", backdropFilter:"blur(12px)", WebkitBackdropFilter:"blur(12px)", display:"flex", gap:14, alignItems:"flex-start" }} onClick={()=>startSeeded("daily", dailySeed(sport))}>
             <div style={{ width:46, height:46, borderRadius:13, background:`${sportAccent}1f`, border:`1px solid ${sportAccent}44`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:23, flexShrink:0 }}>🗓️</div>
             <div style={{ flex:1, minWidth:0 }}>
@@ -4088,7 +4108,7 @@ export default function BeatThat() {
             </div>
           </button>
 
-          {/* 2 — CHALLENGE a friend (remote head-to-head via link) */}
+          {/* 3 — CHALLENGE a friend (remote head-to-head via link) */}
           <div style={{ width:"100%", padding:"16px", background:"rgba(255,255,255,0.04)", border:`1px solid ${C.border}`, borderRadius:18, backdropFilter:"blur(12px)", WebkitBackdropFilter:"blur(12px)" }}>
             <div style={{ display:"flex", gap:14, alignItems:"center" }}>
               <div style={{ width:46, height:46, borderRadius:13, background:`${sportAccent}1f`, border:`1px solid ${sportAccent}44`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:23, flexShrink:0 }}>📲</div>
@@ -4104,21 +4124,12 @@ export default function BeatThat() {
             </button>
           </div>
 
-          {/* 3 — GUESS the lineup */}
+          {/* 4 — GUESS the lineup */}
           <button className="bt-press bt-card-hover" style={{ width:"100%", padding:"16px", background:"rgba(255,255,255,0.04)", border:`1px solid ${C.border}`, borderRadius:18, color:C.text, cursor:"pointer", textAlign:"left", backdropFilter:"blur(12px)", WebkitBackdropFilter:"blur(12px)", display:"flex", gap:14, alignItems:"flex-start" }} onClick={()=>setScreen("puzzle")}>
             <div style={{ width:46, height:46, borderRadius:13, background:`${sportAccent}1f`, border:`1px solid ${sportAccent}44`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:23, flexShrink:0 }}>🧠</div>
             <div style={{ flex:1, minWidth:0 }}>
               <div style={{ fontWeight:800, fontSize:16.5 }}>Guess the Lineup {stats && stats.puzzle && stats.puzzle.streak>0 ? <span style={{ fontSize:12, color:C.muted, fontWeight:700 }}>🔥 {stats.puzzle.streak}</span> : ""}</div>
               <div style={{ fontSize:12.5, color:C.muted, marginTop:3, lineHeight:1.45 }}>One famous NBA lineup, hidden. Name all five from clues — fewer misses is better. New puzzle daily.</div>
-            </div>
-          </button>
-
-          {/* 4 — BUILD a season */}
-          <button className="bt-press bt-card-hover" style={{ width:"100%", padding:"16px", background:"rgba(255,255,255,0.04)", border:`1px solid ${C.border}`, borderRadius:18, color:C.text, cursor:"pointer", textAlign:"left", backdropFilter:"blur(12px)", WebkitBackdropFilter:"blur(12px)", display:"flex", gap:14, alignItems:"flex-start" }} onClick={()=>startMode("season")}>
-            <div style={{ width:46, height:46, borderRadius:13, background:`${sportAccent}1f`, border:`1px solid ${sportAccent}44`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:23, flexShrink:0 }}>🏗️</div>
-            <div style={{ flex:1, minWidth:0 }}>
-              <div style={{ fontWeight:800, fontSize:16.5 }}>Build a Season</div>
-              <div style={{ fontSize:12.5, color:C.muted, marginTop:3, lineHeight:1.45 }}>Draft one {SPORTS[sport].label} lineup at your own pace and chase a perfect {SPORTS[sport].chase}.</div>
             </div>
           </button>
 
@@ -4339,6 +4350,13 @@ export default function BeatThat() {
             <div style={{ color:perfect?C.gold:C.text, fontSize:15, marginTop:10, fontWeight:perfect?900:700, letterSpacing:0.2 }}>{tierLabel}</div>
             <div style={{ display:"inline-block", marginTop:8, padding:"4px 12px", borderRadius:999, background:"rgba(255,255,255,0.06)", border:`1px solid ${C.border}`, color:C.muted, fontSize:11, fontWeight:700, letterSpacing:0.5 }}>CHASING {cfg.chase}</div>
           </div>
+          {/* Share / challenge actions FIRST — right under the score, no scrolling needed. */}
+          <ResultActions
+            cfg={cfg} r={r} perfect={perfect} tierLabel={tierLabel}
+            lineupA={lineupA} teamName={teamNameA} saveTeamName={saveTeamName}
+            seedInfo={seedInfo} stats={stats} recordResult={recordResult}
+            showToast={showToast} reset={reset}
+          />
           {/* Scouting report */}
           <div className="bt-slide" style={{ ...s.card }}>
             <div style={s.eyebrow}>📋 Scouting report</div>
@@ -4385,12 +4403,6 @@ export default function BeatThat() {
               );
             })}
           </div>
-          <ResultActions
-            cfg={cfg} r={r} perfect={perfect} tierLabel={tierLabel}
-            lineupA={lineupA} teamName={teamNameA} saveTeamName={saveTeamName}
-            seedInfo={seedInfo} stats={stats} recordResult={recordResult}
-            showToast={showToast} reset={reset}
-          />
         </div>
       </div>
       </ResultReveal>
